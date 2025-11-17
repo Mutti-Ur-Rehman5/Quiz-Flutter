@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future<void> uploadQuestionsToFirebase() async {
   for (final sector in data.entries) {
-    uloadQuestionForAField(
+   await uloadQuestionForAField(
       sector.key,
       sector.value,
     );
@@ -10,7 +10,7 @@ Future<void> uploadQuestionsToFirebase() async {
 }
 
 Future<void> uloadQuestionForAField(String field, dynamic data) async {
-  FirebaseFirestore.instance.collection('ListOfQuestions').doc(field).set(data);
+ await FirebaseFirestore.instance.collection('ListOfQuestions').doc(field).set(data);
 }
 
 final data = {

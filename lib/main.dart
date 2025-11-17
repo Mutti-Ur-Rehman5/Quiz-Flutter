@@ -1,3 +1,4 @@
+import 'package:ab/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'Data/existing_data.dart';
@@ -9,7 +10,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  runApp(const UploadQuestionsScreen());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -19,28 +20,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: UploadQuestionsScreen(),
+      home:LoginScreen(),
+    
     );
   }
 }
 
 
-class UploadQuestionsScreen extends StatelessWidget {
-  const UploadQuestionsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () {
-              uploadQuestionsToFirebase();
-            },
-            child: const Text("Upload data"),
-          ),
-        ),
-      ),
-    );
-  }
-}

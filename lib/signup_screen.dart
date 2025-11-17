@@ -1,55 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'signup_screen.dart';
+import 'login_screen.dart';
 import 'my_button.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
+  TextEditingController nameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  // Load saved email and password
-  void _loadUserData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    emailController.text = prefs.getString('email') ?? '';
-    passwordController.text = prefs.getString('password') ?? '';
-  }
-
-  // Login function
-  void _login() async {
+  void _signup() async {
+    String name = nameController.text.trim();
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String savedEmail = prefs.getString('email') ?? '';
-    String savedPassword = prefs.getString('password') ?? '';
-
-    if (email == savedEmail && password == savedPassword) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login Successful')),
+        const SnackBar(content: Text('Please fill all fields')),
       );
-      // Navigate to Home or Dashboard screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid Email or Password')),
-      );
+      return;
     }
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('name', name);
+    await prefs.setString('email', email);
+    await prefs.setString('password', password);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Signup Successful!')),
+    );
+
+    // Navigate back to login after signup
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 
   @override
@@ -69,15 +60,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 30),
                 const Text(
-                  "Welcome Back!",
+                  "Create Account",
                   style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  "Login to continue",
+                  "Signup to get started",
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 30),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                      labelText: "Full Name", border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 20),
                 TextField(
                   controller: emailController,
                   decoration: const InputDecoration(
@@ -91,22 +88,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: "Password", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 30),
-                MyButton(buttontext: "Login", onTap: _login),
+                MyButton(buttontext: "Signup", onTap: _signup),
                 const SizedBox(height: 25),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Don't have an account? "),
+                    const Text("Already have an account? "),
                     GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const SignupScreen()),
-                        );
+                        Navigator.pop(context);
                       },
                       child: const Text(
-                        "Signup",
+                        "Login",
                         style: TextStyle(
                             color: Colors.blue, fontWeight: FontWeight.w600),
                       ),
@@ -116,31 +109,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// Dummy HomeScreen for navigation after login
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Home Screen")),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () async {
-            SharedPreferences prefs = await SharedPreferences.getInstance();
-            await prefs.clear(); // Clear saved login
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const LoginScreen()));
-          },
-          child: const Text("Logout"),
         ),
       ),
     );
