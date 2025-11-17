@@ -39,7 +39,7 @@ class _SignupScreenState extends State<SignupScreen> {
     // Navigate back to login after signup
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) =>  LoginScreen()),
     );
   }
 
@@ -56,7 +56,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 const SizedBox(height: 40),
                 CircleAvatar(
                   radius: 80,
-                  backgroundImage: const AssetImage("assets/3094352.jpg"),
+                 // backgroundImage: const AssetImage("assets/3094352.jpg"),
                 ),
                 const SizedBox(height: 30),
                 const Text(

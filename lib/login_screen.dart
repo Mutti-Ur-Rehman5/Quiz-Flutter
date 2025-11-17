@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Navigate to Home or Dashboard screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) =>  HomeScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 40),
                 CircleAvatar(
                   radius: 80,
-                  backgroundImage: const AssetImage("assets/3094352.jpg"),
+               //   backgroundImage: const AssetImage("assets/3094352.jpg"),
                 ),
                 const SizedBox(height: 30),
                 const Text(
