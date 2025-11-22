@@ -39,57 +39,94 @@ class _SignupScreenState extends State<SignupScreen> {
     // Navigate back to login after signup
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) =>  LoginScreen()),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Colors.deepPurple[50],
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
             child: Column(
               children: [
-                const SizedBox(height: 40),
-                CircleAvatar(
-                  radius: 80,
-                 // backgroundImage: const AssetImage("assets/3094352.jpg"),
+                // 🔹 Large Signup Icon
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.deepPurple.withOpacity(0.1),
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: const Icon(
+                    Icons.person_add_alt_1,
+                    size: 80,
+                    color: Colors.deepPurple,
+                  ),
                 ),
+
                 const SizedBox(height: 30),
                 const Text(
                   "Create Account",
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 8),
                 const Text(
                   "Signup to get started",
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 30),
+
+                // 🔹 Name TextField
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                      labelText: "Full Name", border: OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.person),
+                    labelText: "Full Name",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
+
+                // 🔹 Email TextField
                 TextField(
                   controller: emailController,
-                  decoration: const InputDecoration(
-                      labelText: "Email", border: OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.email),
+                    labelText: "Email",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
+
+                // 🔹 Password TextField
                 TextField(
                   controller: passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                      labelText: "Password", border: OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.lock),
+                    labelText: "Password",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 30),
+
+                // 🔹 Signup Button
                 MyButton(buttontext: "Signup", onTap: _signup),
                 const SizedBox(height: 25),
+
+                // 🔹 Login Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -101,7 +138,8 @@ class _SignupScreenState extends State<SignupScreen> {
                       child: const Text(
                         "Login",
                         style: TextStyle(
-                            color: Colors.blue, fontWeight: FontWeight.w600),
+                            color: Colors.deepPurple,
+                            fontWeight: FontWeight.bold),
                       ),
                     )
                   ],

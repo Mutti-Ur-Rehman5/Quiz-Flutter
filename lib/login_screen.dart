@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'signup_screen.dart';
 import 'my_button.dart';
+import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,10 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login Successful')),
       );
-      // Navigate to Home or Dashboard screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) =>  HomeScreen()),
+        MaterialPageRoute(builder: (context) => HomeScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -55,44 +55,74 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: Colors.deepPurple[50],
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
             child: Column(
               children: [
-                const SizedBox(height: 40),
-                CircleAvatar(
-                  radius: 80,
-               //   backgroundImage: const AssetImage("assets/3094352.jpg"),
+                // 🔹 Large Login Icon
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.deepPurple.withOpacity(0.1),
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: const Icon(
+                    Icons.lock_outline,
+                    size: 80,
+                    color: Colors.deepPurple,
+                  ),
                 ),
+
                 const SizedBox(height: 30),
                 const Text(
                   "Welcome Back!",
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 8),
                 const Text(
                   "Login to continue",
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 30),
+
+                // 🔹 Email TextField
                 TextField(
                   controller: emailController,
-                  decoration: const InputDecoration(
-                      labelText: "Email", border: OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.email),
+                    labelText: "Email",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
+
+                // 🔹 Password TextField
                 TextField(
                   controller: passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                      labelText: "Password", border: OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.lock),
+                    labelText: "Password",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 30),
+
+                // 🔹 Login Button
                 MyButton(buttontext: "Login", onTap: _login),
                 const SizedBox(height: 25),
+
+                // 🔹 Signup Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -108,7 +138,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: const Text(
                         "Signup",
                         style: TextStyle(
-                            color: Colors.blue, fontWeight: FontWeight.w600),
+                            color: Colors.deepPurple,
+                            fontWeight: FontWeight.bold),
                       ),
                     )
                   ],
@@ -116,31 +147,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// Dummy HomeScreen for navigation after login
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Home Screen")),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () async {
-            SharedPreferences prefs = await SharedPreferences.getInstance();
-            await prefs.clear(); // Clear saved login
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const LoginScreen()));
-          },
-          child: const Text("Logout"),
         ),
       ),
     );
