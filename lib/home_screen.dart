@@ -1,8 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
+import 'Math.dart';
+import 'flutter_quiz.dart';
+import 'geography_quiz.dart';
+import 'science_quiz.dart';
+import 'sports_quiz.dart';
+import 'technology_quiz.dart';
+import 'history_quiz.dart';
 
-class HomeScreen extends StatelessWidget {
-  HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String userName = "User";
 
   final List<Map<String, dynamic>> categories = [
     {"name": "Flutter", "icon": Icons.flutter_dash, "color": Colors.blue},
@@ -15,19 +31,85 @@ class HomeScreen extends StatelessWidget {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  void _loadUserName() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userName = prefs.getString('name') ?? 'User';
+    });
+  }
+
+  Future<Map<String, dynamic>> getQuestions(String category) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('ListOfQuestions')
+        .doc(category)
+        .get();
+    if (doc.exists) return doc.data()?['questions'] ?? {};
+    return {};
+  }
+
+  void navigateToQuiz(String category) async {
+    final questions = await getQuestions(category);
+
+    Widget screen;
+    switch (category) {
+      case "Math":
+        screen = QuizScreen(categoryName: category, questions: questions);
+        break;
+      case "Flutter":
+        screen = FlutterQuizScreen(categoryName: category, questions: questions);
+        break;
+      case "Geography":
+        screen = GeographyQuizScreen(categoryName: category, questions: questions);
+        break;
+      case "Science":
+        screen = ScienceQuizScreen(categoryName: category, questions: questions);
+        break;
+      case "Sports":
+        screen = SportsQuizScreen(categoryName: category, questions: questions);
+        break;
+      case "Technology":
+        screen = TechnologyQuizScreen(categoryName: category, questions: questions);
+        break;
+      case "History":
+        screen = HistoryQuizScreen(categoryName: category, questions: questions);
+        break;
+      default:
+        return;
+    }
+
+    Navigator.push(
+        context, MaterialPageRoute(builder: (context) => screen));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("QuizMaker Categories"),
         backgroundColor: Colors.deepPurple,
         actions: [
+          Row(
+            children: [
+              Text(userName,
+                  style: const TextStyle(fontSize: 16, color: Colors.white)),
+              const SizedBox(width: 8),
+              const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: Colors.deepPurple),
+              ),
+              const SizedBox(width: 12),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()));
             },
           )
         ],
@@ -37,10 +119,10 @@ class HomeScreen extends StatelessWidget {
         child: GridView.builder(
           itemCount: categories.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,        // 3 columns → all cards fit
+            crossAxisCount: 3,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1,      // square-ish cards
+            childAspectRatio: 1,
           ),
           itemBuilder: (context, index) {
             final category = categories[index];
@@ -53,11 +135,7 @@ class HomeScreen extends StatelessWidget {
               shadowColor: category["color"].withOpacity(0.5),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Selected ${category["name"]}')),
-                  );
-                },
+                onTap: () => navigateToQuiz(category["name"]),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -69,7 +147,7 @@ class HomeScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(12),
                       child: Icon(
                         category["icon"],
-                        size: 40,         // bigger icon
+                        size: 40,
                         color: category["color"],
                       ),
                     ),
@@ -77,7 +155,7 @@ class HomeScreen extends StatelessWidget {
                     Text(
                       category["name"],
                       style: TextStyle(
-                        fontSize: 14,      // readable text
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: Colors.grey[800],
                       ),

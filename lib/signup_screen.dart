@@ -31,12 +31,12 @@ class _SignupScreenState extends State<SignupScreen> {
     await prefs.setString('name', name);
     await prefs.setString('email', email);
     await prefs.setString('password', password);
+    await prefs.setBool('isLoggedIn', true); // ✅ Add this
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Signup Successful!')),
     );
 
-    // Navigate back to login after signup
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -53,7 +53,6 @@ class _SignupScreenState extends State<SignupScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
             child: Column(
               children: [
-                // 🔹 Large Signup Icon
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -66,7 +65,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     color: Colors.deepPurple,
                   ),
                 ),
-
                 const SizedBox(height: 30),
                 const Text(
                   "Create Account",
@@ -81,8 +79,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 30),
-
-                // 🔹 Name TextField
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -94,8 +90,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // 🔹 Email TextField
                 TextField(
                   controller: emailController,
                   decoration: InputDecoration(
@@ -107,8 +101,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // 🔹 Password TextField
                 TextField(
                   controller: passwordController,
                   obscureText: true,
@@ -121,12 +113,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-
-                // 🔹 Signup Button
                 MyButton(buttontext: "Signup", onTap: _signup),
                 const SizedBox(height: 25),
-
-                // 🔹 Login Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

@@ -21,14 +21,12 @@ class _LoginScreenState extends State<LoginScreen> {
     _loadUserData();
   }
 
-  // Load saved email and password
   void _loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     emailController.text = prefs.getString('email') ?? '';
     passwordController.text = prefs.getString('password') ?? '';
   }
 
-  // Login function
   void _login() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
@@ -38,6 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
     String savedPassword = prefs.getString('password') ?? '';
 
     if (email == savedEmail && password == savedPassword) {
+      await prefs.setBool('isLoggedIn', true); // ✅ Add this
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login Successful')),
       );
@@ -62,7 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
             child: Column(
               children: [
-                // 🔹 Large Login Icon
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -75,7 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.deepPurple,
                   ),
                 ),
-
                 const SizedBox(height: 30),
                 const Text(
                   "Welcome Back!",
@@ -90,8 +88,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 30),
-
-                // 🔹 Email TextField
                 TextField(
                   controller: emailController,
                   decoration: InputDecoration(
@@ -103,8 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // 🔹 Password TextField
                 TextField(
                   controller: passwordController,
                   obscureText: true,
@@ -117,12 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-
-                // 🔹 Login Button
                 MyButton(buttontext: "Login", onTap: _login),
                 const SizedBox(height: 25),
-
-                // 🔹 Signup Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
