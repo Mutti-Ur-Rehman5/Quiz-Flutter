@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +11,7 @@ import 'science_quiz.dart';
 import 'sports_quiz.dart';
 import 'technology_quiz.dart';
 import 'history_quiz.dart';
+import 'profile.dart'; // <-- import your profile screen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String userName = "User";
+  File? profileImage;
 
   final List<Map<String, dynamic>> categories = [
     {"name": "Flutter", "icon": Icons.flutter_dash, "color": Colors.blue},
@@ -33,13 +37,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserName();
+    _loadUserData();
   }
 
-  void _loadUserName() async {
+  void _loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       userName = prefs.getString('name') ?? 'User';
+      String? path = prefs.getString("profile_image");
+      if (path != null) profileImage = File(path);
     });
   }
 
@@ -82,8 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
     }
 
-    Navigator.push(
-        context, MaterialPageRoute(builder: (context) => screen));
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 
   @override
@@ -98,9 +103,27 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(userName,
                   style: const TextStyle(fontSize: 16, color: Colors.white)),
               const SizedBox(width: 8),
-              const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, color: Colors.deepPurple),
+
+              // <-- Profile Avatar with image
+              InkWell(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                  );
+                  _loadUserData(); // reload profile image and name after returning
+                },
+                child: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  backgroundImage: profileImage != null
+                      ? kIsWeb
+                          ? NetworkImage(profileImage!.path) as ImageProvider
+                          : FileImage(profileImage!)
+                      : null,
+                  child: profileImage == null
+                      ? const Icon(Icons.person, color: Colors.deepPurple)
+                      : null,
+                ),
               ),
               const SizedBox(width: 12),
             ],
@@ -108,7 +131,8 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              Navigator.pushReplacement(context,
+              Navigator.pushReplacement(
+                  context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()));
             },
           )

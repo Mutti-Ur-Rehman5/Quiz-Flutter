@@ -1,5 +1,5 @@
-
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SportsQuizScreen extends StatefulWidget {
   const SportsQuizScreen({super.key, required this.categoryName, required this.questions});
@@ -22,23 +22,31 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
     if (currentIndex < widget.questions.length - 1) {
       setState(() => currentIndex++);
     } else {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text("Quiz Finished!"),
-          content: Text("Your Score: $score / ${widget.questions.length}"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-              child: const Text("OK"),
-            )
-          ],
-        ),
-      );
+      _showResultDialog();
     }
+  }
+
+  void _showResultDialog() async {
+    // Save score to SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setInt("quiz_${widget.categoryName}", score);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Quiz Finished!"),
+        content: Text("Your Score: $score / ${widget.questions.length}"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text("OK"),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -62,7 +70,10 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: ElevatedButton(
                   onPressed: () => _answerQuestion(entry.key),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple, minimumSize: const Size.fromHeight(50)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    minimumSize: const Size.fromHeight(50),
+                  ),
                   child: Text(entry.value, style: const TextStyle(fontSize: 18)),
                 ),
               ),
