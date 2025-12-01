@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // <-- for ThemeProvider
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
@@ -11,7 +12,8 @@ import 'science_quiz.dart';
 import 'sports_quiz.dart';
 import 'technology_quiz.dart';
 import 'history_quiz.dart';
-import 'profile.dart'; 
+import 'profile.dart';
+import 'theme_provider.dart'; // <-- your ThemeProvider file
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -67,10 +69,12 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = QuizScreen(categoryName: category, questions: questions);
         break;
       case "Flutter":
-        screen = FlutterQuizScreen(categoryName: category, questions: questions);
+        screen =
+            FlutterQuizScreen(categoryName: category, questions: questions);
         break;
       case "Geography":
-        screen = GeographyQuizScreen(categoryName: category, questions: questions);
+        screen =
+            GeographyQuizScreen(categoryName: category, questions: questions);
         break;
       case "Science":
         screen = ScienceQuizScreen(categoryName: category, questions: questions);
@@ -79,7 +83,8 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = SportsQuizScreen(categoryName: category, questions: questions);
         break;
       case "Technology":
-        screen = TechnologyQuizScreen(categoryName: category, questions: questions);
+        screen =
+            TechnologyQuizScreen(categoryName: category, questions: questions);
         break;
       case "History":
         screen = HistoryQuizScreen(categoryName: category, questions: questions);
@@ -93,6 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("QuizMaker Categories"),
@@ -104,12 +111,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: const TextStyle(fontSize: 16, color: Colors.white)),
               const SizedBox(width: 8),
 
+              // <-- Theme toggle button
+              IconButton(
+                icon: const Icon(Icons.brightness_6, color: Colors.white),
+                onPressed: () {
+                  themeProvider.toggleTheme();
+                },
+              ),
+
               // <-- Profile Avatar with image
               InkWell(
                 onTap: () async {
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const ProfileScreen()),
                   );
                   _loadUserData(); // reload profile image and name after returning
                 },
