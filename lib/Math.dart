@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,15 +19,40 @@ class QuizScreen extends StatefulWidget {
 class _QuizScreenState extends State<QuizScreen> {
   int currentIndex = 0;
   int score = 0;
+  Timer? _timer;
+  int _timeLeft = 10; // 10 seconds per question
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timeLeft = 10;
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _timeLeft--;
+      });
+
+      if (_timeLeft == 0) {
+        _timer?.cancel();
+        _nextQuestion(false); // false = wrong answer
+      }
+    });
+  }
 
   void _answerQuestion(String selectedOptionKey) {
     String correctKey = widget.questions['$currentIndex']['correctOptionKey'];
-
     bool isCorrect = selectedOptionKey == correctKey;
+    _nextQuestion(isCorrect);
+  }
 
+  void _nextQuestion(bool isCorrect) {
     if (isCorrect) score++;
 
-    // Show instant feedback (Correct/Incorrect)
+    // Show instant feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(isCorrect ? "Correct!" : "Wrong!"),
@@ -35,12 +61,15 @@ class _QuizScreenState extends State<QuizScreen> {
       ),
     );
 
-    // Move to next question
+    _timer?.cancel();
+
+    // Move to next question after short delay
     Future.delayed(const Duration(milliseconds: 500), () {
       if (currentIndex < widget.questions.length - 1) {
         setState(() {
           currentIndex++;
         });
+        _startTimer();
       } else {
         _showResultDialog();
       }
@@ -48,7 +77,6 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _showResultDialog() async {
-    // Save score to SharedPreferences
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setInt("quiz_${widget.categoryName}", score);
 
@@ -79,6 +107,12 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currentQuestion = widget.questions['$currentIndex'];
 
@@ -94,17 +128,21 @@ class _QuizScreenState extends State<QuizScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Progress bar
+            // Timer bar
             LinearProgressIndicator(
-              value: (currentIndex + 1) / widget.questions.length,
-              color: Colors.deepPurple,
-              backgroundColor: Colors.deepPurple.shade100,
+              value: _timeLeft / 10,
+              color: Colors.red,
+              backgroundColor: Colors.red.shade100,
               minHeight: 8,
               borderRadius: BorderRadius.circular(10),
             ),
+            const SizedBox(height: 10),
+            Text("Time left: $_timeLeft sec",
+                style: const TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
 
-            // Question Number
+            // Question number
             Text(
               "Question ${currentIndex + 1}/${widget.questions.length}",
               style: const TextStyle(
@@ -114,7 +152,7 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Question Card
+            // Question card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
