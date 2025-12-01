@@ -11,7 +11,7 @@ import 'science_quiz.dart';
 import 'sports_quiz.dart';
 import 'technology_quiz.dart';
 import 'history_quiz.dart';
-import 'profile.dart'; // <-- import your profile screen
+import 'profile.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
