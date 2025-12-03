@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // <-- for ThemeProvider
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'login_screen.dart';
 import 'Math.dart';
 import 'flutter_quiz.dart';
@@ -13,7 +14,8 @@ import 'sports_quiz.dart';
 import 'technology_quiz.dart';
 import 'history_quiz.dart';
 import 'profile.dart';
-import 'theme_provider.dart'; // <-- your ThemeProvider file
+import 'theme_provider.dart';
+import 'edit_questions_screen.dart'; // <-- MUST ADD THIS
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,7 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
         .collection('ListOfQuestions')
         .doc(category)
         .get();
-    if (doc.exists) return doc.data()?['questions'] ?? {};
+
+    if (doc.exists) {
+      return doc.data()?['questions'] ?? {};
+    }
     return {};
   }
 
@@ -69,8 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = QuizScreen(categoryName: category, questions: questions);
         break;
       case "Flutter":
-        screen =
-            FlutterQuizScreen(categoryName: category, questions: questions);
+        screen = FlutterQuizScreen(categoryName: category, questions: questions);
         break;
       case "Geography":
         screen =
@@ -107,11 +111,13 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           Row(
             children: [
-              Text(userName,
-                  style: const TextStyle(fontSize: 16, color: Colors.white)),
+              Text(
+                userName,
+                style: const TextStyle(fontSize: 16, color: Colors.white),
+              ),
               const SizedBox(width: 8),
 
-              // <-- Theme toggle button
+              // Theme Toggle Button
               IconButton(
                 icon: const Icon(Icons.brightness_6, color: Colors.white),
                 onPressed: () {
@@ -119,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
 
-              // <-- Profile Avatar with image
+              // Profile Image Button
               InkWell(
                 onTap: () async {
                   await Navigator.push(
@@ -127,14 +133,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     MaterialPageRoute(
                         builder: (context) => const ProfileScreen()),
                   );
-                  _loadUserData(); // reload profile image and name after returning
+                  _loadUserData();
                 },
                 child: CircleAvatar(
                   backgroundColor: Colors.white,
                   backgroundImage: profileImage != null
-                      ? kIsWeb
-                          ? NetworkImage(profileImage!.path) as ImageProvider
-                          : FileImage(profileImage!)
+                      ? (kIsWeb
+                          ? NetworkImage(profileImage!.path)
+                          : FileImage(profileImage!)) as ImageProvider
                       : null,
                   child: profileImage == null
                       ? const Icon(Icons.person, color: Colors.deepPurple)
@@ -144,16 +150,21 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 12),
             ],
           ),
+
+          // Logout Button
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
               Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()));
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
             },
           )
         ],
       ),
+
+      // BODY
       body: Padding(
         padding: const EdgeInsets.all(10),
         child: GridView.builder(
@@ -176,31 +187,54 @@ class _HomeScreenState extends State<HomeScreen> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: () => navigateToQuiz(category["name"]),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Stack(
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: category["color"].withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Icon(
-                        category["icon"],
-                        size: 40,
-                        color: category["color"],
+                    // 🔥 EDIT BUTTON ADDED TOP-RIGHT
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: IconButton(
+                        icon: const Icon(Icons.edit,
+                            size: 20, color: Colors.grey),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditQuestionsScreen(
+                                  categoryName: category["name"]),
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      category["name"],
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[800],
-                      ),
-                      textAlign: TextAlign.center,
-                    )
+
+                    // MAIN CARD UI
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: category["color"].withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Icon(
+                            category["icon"],
+                            size: 40,
+                            color: category["color"],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          category["name"],
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                          textAlign: TextAlign.center,
+                        )
+                      ],
+                    ),
                   ],
                 ),
               ),
