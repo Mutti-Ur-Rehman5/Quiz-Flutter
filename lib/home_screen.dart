@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +16,7 @@ import 'technology_quiz.dart';
 import 'history_quiz.dart';
 import 'profile.dart';
 import 'theme_provider.dart';
-import 'edit_questions_screen.dart'; // <-- MUST ADD THIS
+import 'edit_questions_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   File? profileImage;
 
   final List<Map<String, dynamic>> categories = [
-    {"name": "Flutter", "icon": Icons.flutter_dash, "color": Colors.blue},
+    {"name": "Flutter", "icon": Icons.flutter_dash, "color": Colors.purple},
     {"name": "Geography", "icon": Icons.public, "color": Colors.green},
     {"name": "Science", "icon": Icons.science, "color": Colors.deepPurple},
     {"name": "Math", "icon": Icons.calculate, "color": Colors.orange},
@@ -105,142 +106,217 @@ class _HomeScreenState extends State<HomeScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("QuizMaker Categories"),
-        backgroundColor: Colors.deepPurple,
-        actions: [
-          Row(
-            children: [
-              Text(
-                userName,
-                style: const TextStyle(fontSize: 16, color: Colors.white),
-              ),
-              const SizedBox(width: 8),
+      extendBodyBehindAppBar: true,
 
-              // Theme Toggle Button
-              IconButton(
-                icon: const Icon(Icons.brightness_6, color: Colors.white),
-                onPressed: () {
-                  themeProvider.toggleTheme();
-                },
+      // ⭐ BIG PURPLE NAVBAR ⭐
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(110),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF7B3EF3),
+                Color(0xFFB089F9),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.deepPurple.withOpacity(0.4),
+                blurRadius: 25,
+                offset: const Offset(0, 8),
               ),
-
-              // Profile Image Button
-              InkWell(
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const ProfileScreen()),
-                  );
-                  _loadUserData();
-                },
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  backgroundImage: profileImage != null
-                      ? (kIsWeb
-                          ? NetworkImage(profileImage!.path)
-                          : FileImage(profileImage!)) as ImageProvider
-                      : null,
-                  child: profileImage == null
-                      ? const Icon(Icons.person, color: Colors.deepPurple)
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 12),
             ],
           ),
+          child: SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "QuizMaker",
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
 
-          // Logout Button
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
-          )
-        ],
+                Row(
+                  children: [
+                    Text(
+                      userName,
+                      style:
+                          const TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                    const SizedBox(width: 14),
+
+                    _glassIconButton(
+                      icon: Icons.brightness_6_rounded,
+                      onTap: () => themeProvider.toggleTheme(),
+                    ),
+                    const SizedBox(width: 14),
+
+                    // ⭐ PROFILE AVATAR ⭐
+                    GestureDetector(
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const ProfileScreen()),
+                        );
+                        _loadUserData();
+                      },
+                      child: CircleAvatar(
+                        radius: 27,
+                        backgroundColor: Colors.white.withOpacity(0.3),
+                        backgroundImage: profileImage != null
+                            ? (kIsWeb
+                                ? NetworkImage(profileImage!.path)
+                                : FileImage(profileImage!)) as ImageProvider
+                            : null,
+                        child: profileImage == null
+                            ? const Icon(Icons.person,
+                                color: Colors.white, size: 28)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+
+                    _glassIconButton(
+                      icon: Icons.logout,
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginScreen()),
+                        );
+                      },
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        ),
       ),
 
-      // BODY
       body: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.only(top: 130, left: 10, right: 10),
         child: GridView.builder(
           itemCount: categories.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1,
+            crossAxisSpacing: 15,
+            mainAxisSpacing: 15,
+            childAspectRatio: 0.95,
           ),
           itemBuilder: (context, index) {
             final category = categories[index];
 
-            return Card(
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            return Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: LinearGradient(
+                  colors: [
+                    category["color"].withOpacity(0.9),
+                    category["color"].withOpacity(0.65)
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: category["color"].withOpacity(0.45),
+                    blurRadius: 14,
+                    offset: const Offset(3, 6),
+                  )
+                ],
               ),
-              shadowColor: category["color"].withOpacity(0.5),
               child: InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(22),
                 onTap: () => navigateToQuiz(category["name"]),
                 child: Stack(
                   children: [
-                    // 🔥 EDIT BUTTON ADDED TOP-RIGHT
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: IconButton(
-                        icon: const Icon(Icons.edit,
-                            size: 20, color: Colors.grey),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EditQuestionsScreen(
-                                  categoryName: category["name"]),
-                            ),
-                          );
-                        },
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.35),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.edit,
+                              size: 20, color: Colors.white),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditQuestionsScreen(
+                                  categoryName: category["name"],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
 
-                    // MAIN CARD UI
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: category["color"].withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Icon(
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
                             category["icon"],
-                            size: 40,
-                            color: category["color"],
+                            size: 65,
+                            color: Colors.white,
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          category["name"],
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[800],
-                          ),
-                          textAlign: TextAlign.center,
-                        )
-                      ],
-                    ),
+                          const SizedBox(height: 14),
+                          Text(
+                            category["name"],
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 5,
+                                  color: Colors.black54,
+                                  offset: Offset(1, 2),
+                                )
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                    )
                   ],
                 ),
               ),
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _glassIconButton({required IconData icon, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.25),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white30),
+        ),
+        child: Icon(icon, size: 26, color: Colors.white),
       ),
     );
   }

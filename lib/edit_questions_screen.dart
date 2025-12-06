@@ -82,45 +82,91 @@ class _EditQuestionsScreenState extends State<EditQuestionsScreen> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text("Edit Question"),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(controller: questionText, decoration: InputDecoration(labelText: "Question")),
-              TextField(controller: opt1, decoration: InputDecoration(labelText: "Option 1")),
-              TextField(controller: opt2, decoration: InputDecoration(labelText: "Option 2")),
-              TextField(controller: opt3, decoration: InputDecoration(labelText: "Option 3")),
-              TextField(controller: opt4, decoration: InputDecoration(labelText: "Option 4")),
-              TextField(controller: correct, decoration: InputDecoration(labelText: "Correct Option Key")),
-            ],
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Edit Question",
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple),
+                ),
+                const SizedBox(height: 18),
+
+                _inputBox("Question", questionText),
+                _inputBox("Option 1", opt1),
+                _inputBox("Option 2", opt2),
+                _inputBox("Option 3", opt3),
+                _inputBox("Option 4", opt4),
+                _inputBox("Correct Option Key (1-4)", correct),
+
+                const SizedBox(height: 15),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        deleteQuestion(key);
+                        Navigator.pop(context);
+                      },
+                      child: const Text("Delete"),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        saveQuestion(key, {
+                          "questionText": questionText.text,
+                          "correctOptionKey": correct.text,
+                          "options": {
+                            "1": opt1.text,
+                            "2": opt2.text,
+                            "3": opt3.text,
+                            "4": opt4.text,
+                          }
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Text("Save"),
+                    ),
+                  ],
+                )
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
-            onPressed: () {
-              deleteQuestion(key);
-              Navigator.pop(context);
-            },
+      ),
+    );
+  }
+
+  Widget _inputBox(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          filled: true,
+          fillColor: Colors.deepPurple.withOpacity(0.05),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
           ),
-          ElevatedButton(
-            child: Text("Save"),
-            onPressed: () {
-              saveQuestion(key, {
-                "questionText": questionText.text,
-                "correctOptionKey": correct.text,
-                "options": {
-                  "1": opt1.text,
-                  "2": opt2.text,
-                  "3": opt3.text,
-                  "4": opt4.text,
-                }
-              });
-              Navigator.pop(context);
-            },
-          )
-        ],
+        ),
       ),
     );
   }
@@ -129,32 +175,64 @@ class _EditQuestionsScreenState extends State<EditQuestionsScreen> {
   Widget build(BuildContext context) {
     if (loading) {
       return Scaffold(
-        appBar: AppBar(title: Text("Edit ${widget.categoryName}")),
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.deepPurple,
+          title: Text("Edit ${widget.categoryName}"),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.deepPurple),
+        ),
       );
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Edit ${widget.categoryName}"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: addQuestion,
-          ),
-        ],
+        backgroundColor: Colors.deepPurple,
+        elevation: 10,
+        shadowColor: Colors.deepPurple.withOpacity(0.4),
+        title: Text(
+          "Edit ${widget.categoryName}",
+          style: const TextStyle(fontSize: 20),
+        ),
       ),
+
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.deepPurple,
+        onPressed: addQuestion,
+        child: const Icon(Icons.add, size: 28, color: Colors.white),
+      ),
+
       body: ListView.builder(
+        padding: const EdgeInsets.all(12),
         itemCount: questions.length,
         itemBuilder: (context, index) {
           String key = index.toString();
           var q = questions[key];
 
-          return ListTile(
-            title: Text(q["questionText"]),
-            subtitle: Text("Correct Option: ${q["correctOptionKey"]}"),
-            trailing: Icon(Icons.edit),
-            onTap: () => editDialog(key, q),
+          return Card(
+            elevation: 5,
+            shadowColor: Colors.deepPurple.withOpacity(0.4),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              title: Text(
+                q["questionText"],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                "Correct Option: ${q["correctOptionKey"]}",
+                style: const TextStyle(color: Colors.deepPurple),
+              ),
+              trailing: const Icon(Icons.edit, color: Colors.deepPurple),
+              onTap: () => editDialog(key, q),
+            ),
           );
         },
       ),
