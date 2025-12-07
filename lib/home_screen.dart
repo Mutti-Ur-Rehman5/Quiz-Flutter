@@ -17,6 +17,7 @@ import 'history_quiz.dart';
 import 'profile.dart';
 import 'theme_provider.dart';
 import 'edit_questions_screen.dart';
+import 'quiz_web_resources_screen.dart'; // ✅ Import the new WebView screen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -159,6 +160,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     _glassIconButton(
                       icon: Icons.brightness_6_rounded,
                       onTap: () => themeProvider.toggleTheme(),
+                    ),
+                    const SizedBox(width: 14),
+
+                    // ✅ New WebView icon added
+                    _glassIconButton(
+                      icon: Icons.web,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const QuizWebResourcesScreen()),
+                        );
+                      },
                     ),
                     const SizedBox(width: 14),
 
