@@ -17,7 +17,7 @@ import 'history_quiz.dart';
 import 'profile.dart';
 import 'theme_provider.dart';
 import 'edit_questions_screen.dart';
-import 'quiz_web_resources_screen.dart'; // ✅ Import the new WebView screen
+import 'quiz_web_resources_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -79,8 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = FlutterQuizScreen(categoryName: category, questions: questions);
         break;
       case "Geography":
-        screen =
-            GeographyQuizScreen(categoryName: category, questions: questions);
+        screen = GeographyQuizScreen(categoryName: category, questions: questions);
         break;
       case "Science":
         screen = ScienceQuizScreen(categoryName: category, questions: questions);
@@ -89,8 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = SportsQuizScreen(categoryName: category, questions: questions);
         break;
       case "Technology":
-        screen =
-            TechnologyQuizScreen(categoryName: category, questions: questions);
+        screen = TechnologyQuizScreen(categoryName: category, questions: questions);
         break;
       case "History":
         screen = HistoryQuizScreen(categoryName: category, questions: questions);
@@ -109,63 +107,80 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
 
-      // ⭐ BIG PURPLE NAVBAR ⭐
+      // ⭐ BEAUTIFUL NEW NAVBAR ⭐
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(110),
+        preferredSize: const Size.fromHeight(120),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [
-                Color(0xFF7B3EF3),
-                Color(0xFFB089F9),
+                Color(0xFF6A4FEF),
+                Color(0xFF8A6BFF),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
+              bottomLeft: Radius.circular(35),
+              bottomRight: Radius.circular(35),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.deepPurple.withOpacity(0.4),
+                color: Colors.deepPurple.withOpacity(0.35),
                 blurRadius: 25,
-                offset: const Offset(0, 8),
-              ),
+                spreadRadius: 1,
+                offset: Offset(0, 10),
+              )
             ],
           ),
           child: SafeArea(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "QuizMaker",
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
+                // ⭐ App Title + Icon
+                Row(
+                  children: [
+                    Icon(Icons.bolt,
+                        size: 34, color: Colors.yellowAccent.withOpacity(0.9)),
+                    const SizedBox(width: 10),
+                    const Text(
+                      "QuizMaker",
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ],
                 ),
 
+                // ⭐ Right Section
                 Row(
                   children: [
                     Text(
                       userName,
-                      style:
-                          const TextStyle(fontSize: 18, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 16),
 
-                    _glassIconButton(
-                      icon: Icons.brightness_6_rounded,
+                    // Theme Button
+                    _glassNavbarButton(
+                      icon: Icons.wb_sunny_rounded,
+                      glowColor: Colors.yellowAccent,
                       onTap: () => themeProvider.toggleTheme(),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
 
-                    // ✅ New WebView icon added
-                    _glassIconButton(
-                      icon: Icons.web,
+                    // Web Resources
+                    _glassNavbarButton(
+                      icon: Icons.language_rounded,
+                      glowColor: Colors.cyanAccent,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -175,21 +190,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
 
-                    // ⭐ PROFILE AVATAR ⭐
+                    // Profile Avatar
                     GestureDetector(
                       onTap: () async {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const ProfileScreen()),
+                            builder: (context) => const ProfileScreen(),
+                          ),
                         );
                         _loadUserData();
                       },
                       child: CircleAvatar(
-                        radius: 27,
-                        backgroundColor: Colors.white.withOpacity(0.3),
+                        radius: 26,
+                        backgroundColor: Colors.white.withOpacity(0.25),
                         backgroundImage: profileImage != null
                             ? (kIsWeb
                                 ? NetworkImage(profileImage!.path)
@@ -197,14 +213,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             : null,
                         child: profileImage == null
                             ? const Icon(Icons.person,
-                                color: Colors.white, size: 28)
+                                color: Colors.white, size: 26)
                             : null,
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    const SizedBox(width: 12),
 
-                    _glassIconButton(
-                      icon: Icons.logout,
+                    // Logout
+                    _glassNavbarButton(
+                      icon: Icons.logout_rounded,
+                      glowColor: Colors.redAccent,
                       onTap: () {
                         Navigator.pushReplacement(
                           context,
@@ -214,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -321,15 +339,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _glassIconButton({required IconData icon, required VoidCallback onTap}) {
+  // ⭐ New Beautiful Glowing Icon Button
+  Widget _glassNavbarButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required Color glowColor,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.25),
-          borderRadius: BorderRadius.circular(14),
+          color: Colors.white.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.white30),
+          boxShadow: [
+            BoxShadow(
+              color: glowColor.withOpacity(0.45),
+              blurRadius: 12,
+              spreadRadius: 1,
+            ),
+          ],
         ),
         child: Icon(icon, size: 26, color: Colors.white),
       ),
