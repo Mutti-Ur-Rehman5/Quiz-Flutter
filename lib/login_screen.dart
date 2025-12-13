@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'signup_screen.dart';
-import 'my_button.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,39 +14,43 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  void _loadUserData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    emailController.text = prefs.getString('email') ?? '';
-    passwordController.text = prefs.getString('password') ?? '';
-  }
-
   void _login() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String savedEmail = prefs.getString('email') ?? '';
-    String savedPassword = prefs.getString('password') ?? '';
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
 
-    if (email == savedEmail && password == savedPassword) {
-      await prefs.setBool('isLoggedIn', true);
+    try {
+      // 🔐 Firebase Login
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Login Successful')),
       );
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreen()),
       );
-    } else {
+    } on FirebaseAuthException catch (e) {
+      String message = 'Login failed';
+
+      if (e.code == 'user-not-found') {
+        message = 'No user found for this email';
+      } else if (e.code == 'wrong-password') {
+        message = 'Wrong password';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid Email or Password')),
+        SnackBar(content: Text(message)),
       );
     }
   }

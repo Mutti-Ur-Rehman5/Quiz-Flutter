@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class QuizScreen extends StatefulWidget {
   const QuizScreen({
@@ -38,7 +39,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
       if (_timeLeft == 0) {
         _timer?.cancel();
-        _nextQuestion(false); // false = wrong answer
+        _nextQuestion(false); 
       }
     });
   }
@@ -49,10 +50,9 @@ class _QuizScreenState extends State<QuizScreen> {
     _nextQuestion(isCorrect);
   }
 
-  void _nextQuestion(bool isCorrect) {
+  void _nextQuestion(bool isCorrect) async {
     if (isCorrect) score++;
 
-    // Show instant feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(isCorrect ? "Correct!" : "Wrong!"),
@@ -63,23 +63,36 @@ class _QuizScreenState extends State<QuizScreen> {
 
     _timer?.cancel();
 
-    // Move to next question after short delay
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () async {
       if (currentIndex < widget.questions.length - 1) {
         setState(() {
           currentIndex++;
         });
         _startTimer();
       } else {
+        await _saveScoreToFirestore();
         _showResultDialog();
       }
     });
   }
 
-  void _showResultDialog() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt("quiz_${widget.categoryName}", score);
+  Future<void> _saveScoreToFirestore() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('scores')
+          .doc(widget.categoryName)
+          .set({
+        'score': score,
+        'total': widget.questions.length,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+  }
 
+  void _showResultDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,

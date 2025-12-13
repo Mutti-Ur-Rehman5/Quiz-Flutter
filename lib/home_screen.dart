@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'login_screen.dart';
@@ -46,13 +46,28 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadUserData();
   }
 
+  /// 🔥 Load user name from Firestore using Firebase Auth UID
   void _loadUserData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      userName = prefs.getString('name') ?? 'User';
-      String? path = prefs.getString("profile_image");
-      if (path != null) profileImage = File(path);
-    });
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (userDoc.exists) {
+      setState(() {
+        userName = userDoc['name'] ?? 'User';
+      });
+    }
   }
 
   Future<Map<String, dynamic>> getQuestions(String category) async {
@@ -79,7 +94,8 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = FlutterQuizScreen(categoryName: category, questions: questions);
         break;
       case "Geography":
-        screen = GeographyQuizScreen(categoryName: category, questions: questions);
+        screen =
+            GeographyQuizScreen(categoryName: category, questions: questions);
         break;
       case "Science":
         screen = ScienceQuizScreen(categoryName: category, questions: questions);
@@ -88,7 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
         screen = SportsQuizScreen(categoryName: category, questions: questions);
         break;
       case "Technology":
-        screen = TechnologyQuizScreen(categoryName: category, questions: questions);
+        screen =
+            TechnologyQuizScreen(categoryName: category, questions: questions);
         break;
       case "History":
         screen = HistoryQuizScreen(categoryName: category, questions: questions);
@@ -98,6 +115,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+  }
+
+  /// 🔐 Firebase Logout
+  void _logout() async {
+    await FirebaseAuth.instance.signOut();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
   }
 
   @override
@@ -138,11 +165,11 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // ⭐ App Title + Icon
                 Row(
                   children: [
                     Icon(Icons.bolt,
-                        size: 34, color: Colors.yellowAccent.withOpacity(0.9)),
+                        size: 34,
+                        color: Colors.yellowAccent.withOpacity(0.9)),
                     const SizedBox(width: 10),
                     const Text(
                       "QuizMaker",
@@ -156,7 +183,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
 
-                // ⭐ Right Section
                 Row(
                   children: [
                     Text(
@@ -169,7 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 16),
 
-                    // Theme Button
                     _glassNavbarButton(
                       icon: Icons.wb_sunny_rounded,
                       glowColor: Colors.yellowAccent,
@@ -177,7 +202,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 12),
 
-                    // Web Resources
                     _glassNavbarButton(
                       icon: Icons.language_rounded,
                       glowColor: Colors.cyanAccent,
@@ -185,20 +209,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) =>
-                                  const QuizWebResourcesScreen()),
+                            builder: (_) => const QuizWebResourcesScreen(),
+                          ),
                         );
                       },
                     ),
                     const SizedBox(width: 12),
 
-                    // Profile Avatar
                     GestureDetector(
                       onTap: () async {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ProfileScreen(),
+                            builder: (_) => const ProfileScreen(),
                           ),
                         );
                         _loadUserData();
@@ -206,30 +229,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: CircleAvatar(
                         radius: 26,
                         backgroundColor: Colors.white.withOpacity(0.25),
-                        backgroundImage: profileImage != null
-                            ? (kIsWeb
-                                ? NetworkImage(profileImage!.path)
-                                : FileImage(profileImage!)) as ImageProvider
-                            : null,
-                        child: profileImage == null
-                            ? const Icon(Icons.person,
-                                color: Colors.white, size: 26)
-                            : null,
+                        child: const Icon(Icons.person,
+                            color: Colors.white, size: 26),
                       ),
                     ),
                     const SizedBox(width: 12),
 
-                    // Logout
                     _glassNavbarButton(
                       icon: Icons.logout_rounded,
                       glowColor: Colors.redAccent,
-                      onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const LoginScreen()),
-                        );
-                      },
+                      onTap: _logout,
                     ),
                   ],
                 ),
@@ -305,11 +314,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            category["icon"],
-                            size: 65,
-                            color: Colors.white,
-                          ),
+                          Icon(category["icon"],
+                              size: 65, color: Colors.white),
                           const SizedBox(height: 14),
                           Text(
                             category["name"],
@@ -339,7 +345,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ⭐ New Beautiful Glowing Icon Button
   Widget _glassNavbarButton({
     required IconData icon,
     required VoidCallback onTap,

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FlutterQuizScreen extends StatefulWidget {
   const FlutterQuizScreen({
@@ -66,8 +67,20 @@ class _FlutterQuizScreenState extends State<FlutterQuizScreen> {
         setState(() => currentIndex++);
         _startTimer();
       } else {
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setInt("quiz_${widget.categoryName}", score);
+        // 🔥 Save score to Firestore instead of SharedPreferences
+        User? user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .collection('scores')
+              .doc(widget.categoryName)
+              .set({
+            'score': score,
+            'total': widget.questions.length,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+        }
 
         showDialog(
           context: context,

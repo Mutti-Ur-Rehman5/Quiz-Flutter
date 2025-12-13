@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ScienceQuizScreen extends StatefulWidget {
   const ScienceQuizScreen({
@@ -33,7 +34,6 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() => _timeLeft--);
-
       if (_timeLeft == 0) {
         _timer?.cancel();
         _nextQuestion(false);
@@ -60,20 +60,31 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
 
     _timer?.cancel();
 
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () async {
       if (currentIndex < widget.questions.length - 1) {
         setState(() => currentIndex++);
         _startTimer();
       } else {
+        await _saveScoreToFirestore();
         _showResultDialog();
       }
     });
   }
 
-  void _showResultDialog() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt("quiz_${widget.categoryName}", score);
+  Future<void> _saveScoreToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('quizScores')
+          .doc(widget.categoryName);
 
+      await docRef.set({'score': score, 'total': widget.questions.length});
+    }
+  }
+
+  void _showResultDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -116,7 +127,6 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Timer bar
             LinearProgressIndicator(
               value: _timeLeft / 10,
               color: Colors.red,
@@ -128,7 +138,6 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
             Text("Time left: $_timeLeft sec",
                 style: const TextStyle(
                     fontSize: 16, fontWeight: FontWeight.bold)),
-
             const SizedBox(height: 20),
             Text(
               "Question ${currentIndex + 1} of ${widget.questions.length}",
@@ -138,7 +147,6 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
                   color: Colors.deepPurple),
             ),
             const SizedBox(height: 20),
-
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -160,7 +168,6 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
               ),
             ),
             const SizedBox(height: 30),
-
             ...currentQuestion['options'].entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),

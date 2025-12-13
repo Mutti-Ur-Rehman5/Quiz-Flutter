@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
 import 'my_button.dart';
 
@@ -28,20 +29,44 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('name', name);
-    await prefs.setString('email', email);
-    await prefs.setString('password', password);
-    await prefs.setBool('isLoggedIn', true);
+    try {
+      // 🔐 Firebase Authentication Signup
+      UserCredential userCred =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Signup Successful!')),
-    );
+      String uid = userCred.user!.uid;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
+      // 🧾 Save extra user data in Firestore
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'name': name,
+        'email': email,
+        'createdAt': Timestamp.now(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Signup Successful!')),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'Signup failed';
+
+      if (e.code == 'email-already-in-use') {
+        message = 'Email already registered';
+      } else if (e.code == 'weak-password') {
+        message = 'Password should be at least 6 characters';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -208,7 +233,8 @@ class _SignupScreenState extends State<SignupScreen> {
           labelText: label,
           labelStyle: const TextStyle(color: Colors.white70),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         ),
       ),
     );

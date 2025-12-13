@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class TechnologyQuizScreen extends StatefulWidget {
   final String categoryName;
@@ -65,29 +66,44 @@ class _TechnologyQuizScreenState extends State<TechnologyQuizScreen> {
         setState(() => currentIndex++);
         _startTimer();
       } else {
-        // Save score
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setInt("quiz_${widget.categoryName}", score);
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            title: const Text("🎉 Quiz Completed!"),
-            content: Text("Your Score: $score / ${widget.questions.length}"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              )
-            ],
-          ),
-        );
+        await _saveScoreToFirestore();
+        _showResultDialog();
       }
     });
+  }
+
+  Future<void> _saveScoreToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('quizScores')
+          .doc(widget.categoryName);
+
+      await docRef.set({'score': score, 'total': widget.questions.length});
+    }
+  }
+
+  void _showResultDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("🎉 Quiz Completed!"),
+        content: Text("Your Score: $score / ${widget.questions.length}"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text("OK"),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -115,7 +131,6 @@ class _TechnologyQuizScreenState extends State<TechnologyQuizScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Timer bar
                 LinearProgressIndicator(
                   value: _timeLeft / 10,
                   color: Colors.red,
@@ -125,7 +140,6 @@ class _TechnologyQuizScreenState extends State<TechnologyQuizScreen> {
                 const SizedBox(height: 6),
                 Text("Time left: $_timeLeft sec",
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-
                 const SizedBox(height: 10),
                 Text(
                   "${widget.categoryName} Quiz",

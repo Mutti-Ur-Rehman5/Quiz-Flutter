@@ -1,9 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HistoryQuizScreen extends StatefulWidget {
-  const HistoryQuizScreen({super.key, required this.categoryName, required this.questions});
+  const HistoryQuizScreen({
+    super.key,
+    required this.categoryName,
+    required this.questions,
+  });
 
   final String categoryName;
   final Map<String, dynamic> questions;
@@ -31,14 +36,16 @@ class _HistoryQuizScreenState extends State<HistoryQuizScreen> {
       setState(() => _timeLeft--);
       if (_timeLeft == 0) {
         _timer?.cancel();
-        _nextQuestion(false);
+        _nextQuestion(false); // auto wrong
       }
     });
   }
 
   void _answerQuestion(String selectedOptionKey) {
-    String correctKey = widget.questions['$currentIndex']['correctOptionKey'];
+    final currentQuestion = widget.questions['$currentIndex'] as Map<String, dynamic>;
+    final correctKey = currentQuestion['correctOptionKey'] as String;
     bool isCorrect = selectedOptionKey == correctKey;
+
     _nextQuestion(isCorrect);
   }
 
@@ -60,29 +67,47 @@ class _HistoryQuizScreenState extends State<HistoryQuizScreen> {
         setState(() => currentIndex++);
         _startTimer();
       } else {
-        // Save score
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setInt("quiz_${widget.categoryName}", score);
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            title: const Text("🎉 Quiz Completed!"),
-            content: Text("Your Score: $score / ${widget.questions.length}"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              )
-            ],
-          ),
-        );
+        await _saveScoreToFirestore();
+        _showResultDialog();
       }
     });
+  }
+
+  Future<void> _saveScoreToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('quizScores')
+          .doc(widget.categoryName);
+
+      await docRef.set({'score': score, 'total': widget.questions.length});
+    }
+  }
+
+  void _showResultDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.deepPurple.shade50,
+        title: const Text(
+          "🎉 Quiz Completed!",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text("Your Score: $score / ${widget.questions.length}"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -93,70 +118,98 @@ class _HistoryQuizScreenState extends State<HistoryQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentQuestion = widget.questions['$currentIndex'];
+    final currentQuestion = widget.questions['$currentIndex'] as Map<String, dynamic>;
+    final options = Map<String, String>.from(currentQuestion['options'] as Map);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text("${widget.categoryName} Quiz"),
-        backgroundColor: Colors.deepPurple,
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Timer bar
-            LinearProgressIndicator(
-              value: _timeLeft / 10,
-              color: Colors.red,
-              backgroundColor: Colors.red.shade100,
-              minHeight: 8,
-            ),
-            const SizedBox(height: 6),
-            Text("Time left: $_timeLeft sec",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-
-            const SizedBox(height: 16),
-            // Question number & progress
-            Text(
-              "Question ${currentIndex + 1} of ${widget.questions.length}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 4,
-              color: Colors.deepPurple.shade50,
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  currentQuestion['questionText'],
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xffff7e5f), Color(0xffffb199)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                LinearProgressIndicator(
+                  value: _timeLeft / 10,
+                  color: Colors.red,
+                  backgroundColor: Colors.red.shade200,
+                  minHeight: 8,
                 ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            ...currentQuestion['options'].entries.map(
-              (entry) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: ElevatedButton(
-                  onPressed: () => _answerQuestion(entry.key),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    minimumSize: const Size.fromHeight(55),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 6),
+                Text(
+                  "Time Left: $_timeLeft sec",
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "${widget.categoryName} Quiz",
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        "Q ${currentIndex + 1}/${widget.questions.length}",
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 30),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
                   ),
                   child: Text(
-                    entry.value,
-                    style: const TextStyle(fontSize: 18, color: Colors.white),
+                    currentQuestion['questionText'],
+                    style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w600),
                   ),
                 ),
-              ),
-            )
-          ],
+                const SizedBox(height: 30),
+                Expanded(
+                  child: ListView(
+                    children: options.entries.map(
+                      (entry) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: GestureDetector(
+                            onTap: () => _answerQuestion(entry.key),
+                            child: Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: Colors.white.withOpacity(0.12),
+                                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                              ),
+                              child: Text(entry.value, style: const TextStyle(fontSize: 18, color: Colors.white)),
+                            ),
+                          ),
+                        );
+                      },
+                    ).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

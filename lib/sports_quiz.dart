@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SportsQuizScreen extends StatefulWidget {
   const SportsQuizScreen({super.key, required this.categoryName, required this.questions});
@@ -31,7 +32,7 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
       setState(() => _timeLeft--);
       if (_timeLeft == 0) {
         _timer?.cancel();
-        _nextQuestion(false); // auto wrong
+        _nextQuestion(false);
       }
     });
   }
@@ -46,7 +47,6 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
   void _nextQuestion(bool isCorrect) async {
     if (isCorrect) score++;
 
-    // Feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(isCorrect ? "Correct!" : "Wrong!"),
@@ -62,29 +62,44 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
         setState(() => currentIndex++);
         _startTimer();
       } else {
-        // Save score
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setInt("quiz_${widget.categoryName}", score);
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            title: const Text("🎉 Quiz Finished!"),
-            content: Text("Your Score: $score / ${widget.questions.length}"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-        );
+        await _saveScoreToFirestore();
+        _showResultDialog();
       }
     });
+  }
+
+  Future<void> _saveScoreToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('quizScores')
+          .doc(widget.categoryName);
+
+      await docRef.set({'score': score, 'total': widget.questions.length});
+    }
+  }
+
+  void _showResultDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("🎉 Quiz Finished!"),
+        content: Text("Your Score: $score / ${widget.questions.length}"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -107,7 +122,6 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Timer bar
             LinearProgressIndicator(
               value: _timeLeft / 10,
               color: Colors.red,
@@ -120,8 +134,6 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
-            // Question
             Text(
               "Question ${currentIndex + 1} of ${widget.questions.length}",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -129,8 +141,6 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
             const SizedBox(height: 10),
             Text(currentQuestion['questionText'], style: const TextStyle(fontSize: 20)),
             const SizedBox(height: 30),
-
-            // Options
             ...currentQuestion['options'].entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),

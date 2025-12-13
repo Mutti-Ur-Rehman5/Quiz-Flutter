@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class GeographyQuizScreen extends StatefulWidget {
   const GeographyQuizScreen({
@@ -35,7 +36,7 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
       setState(() => _timeLeft--);
       if (_timeLeft == 0) {
         _timer?.cancel();
-        _nextQuestion(false); // auto wrong
+        _nextQuestion(false);
       }
     });
   }
@@ -51,7 +52,6 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
   void _nextQuestion(bool isCorrect) async {
     if (isCorrect) score++;
 
-    // Feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(isCorrect ? "Correct!" : "Wrong!"),
@@ -67,33 +67,47 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
         setState(() => currentIndex++);
         _startTimer();
       } else {
-        // Save score
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setInt("quiz_${widget.categoryName}", score);
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            backgroundColor: Colors.deepPurple.shade50,
-            title: const Text(
-              "🎉 Quiz Completed!",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: Text("Your Score: $score / ${widget.questions.length}"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-        );
+        await _saveScoreToFirestore();
+        _showResultDialog();
       }
     });
+  }
+
+  Future<void> _saveScoreToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('quizScores')
+          .doc(widget.categoryName);
+
+      await docRef.set({'score': score, 'total': widget.questions.length});
+    }
+  }
+
+  void _showResultDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.deepPurple.shade50,
+        title: const Text(
+          "🎉 Quiz Completed!",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text("Your Score: $score / ${widget.questions.length}"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -123,7 +137,6 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Timer Bar
                 LinearProgressIndicator(
                   value: _timeLeft / 10,
                   color: Colors.red,
@@ -136,8 +149,6 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
-                
-                // Top Bar
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -159,8 +170,6 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
                   ],
                 ),
                 const SizedBox(height: 30),
-
-                // Question Card
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -175,8 +184,6 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
                   ),
                 ),
                 const SizedBox(height: 30),
-
-                // Options
                 Expanded(
                   child: ListView(
                     children: options.entries.map(
