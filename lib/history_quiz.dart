@@ -73,17 +73,28 @@ class _HistoryQuizScreenState extends State<HistoryQuizScreen> {
     });
   }
 
+  double _calculateLeaderboardScore() {
+    // accuracy-based score 0–100
+    return (score / widget.questions.length) * 100;
+  }
+
   Future<void> _saveScoreToFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('quizScores')
-          .doc(widget.categoryName);
+    if (user == null) return;
 
-      await docRef.set({'score': score, 'total': widget.questions.length});
-    }
+    final leaderboardScore = _calculateLeaderboardScore();
+
+    await FirebaseFirestore.instance
+        .collection('leaderboard')
+        .doc(user.uid)
+        .set({
+      'uid': user.uid,
+      'category': widget.categoryName,
+      'score': score,
+      'total': widget.questions.length,
+      'leaderboardScore': leaderboardScore,
+      'timestamp': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   void _showResultDialog() {

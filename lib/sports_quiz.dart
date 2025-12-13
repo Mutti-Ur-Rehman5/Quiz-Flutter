@@ -38,7 +38,8 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
   }
 
   void _answerQuestion(String selectedOptionKey) {
-    final correctKey = widget.questions['$currentIndex']['correctOptionKey'];
+    final currentQuestion = widget.questions['$currentIndex'] as Map<String, dynamic>;
+    final correctKey = currentQuestion['correctOptionKey'] as String;
     bool isCorrect = selectedOptionKey == correctKey;
 
     _nextQuestion(isCorrect);
@@ -68,17 +69,27 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
     });
   }
 
+  double _calculateLeaderboardScore() {
+    return (score / widget.questions.length) * 100;
+  }
+
   Future<void> _saveScoreToFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('quizScores')
-          .doc(widget.categoryName);
+    if (user == null) return;
 
-      await docRef.set({'score': score, 'total': widget.questions.length});
-    }
+    final leaderboardScore = _calculateLeaderboardScore();
+
+    await FirebaseFirestore.instance
+        .collection('leaderboard')
+        .doc(user.uid)
+        .set({
+      'uid': user.uid,
+      'category': widget.categoryName,
+      'score': score,
+      'total': widget.questions.length,
+      'leaderboardScore': leaderboardScore,
+      'timestamp': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   void _showResultDialog() {
@@ -111,6 +122,7 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
   @override
   Widget build(BuildContext context) {
     final currentQuestion = widget.questions['$currentIndex'];
+    final options = Map<String, String>.from(currentQuestion['options'] as Map);
 
     return Scaffold(
       appBar: AppBar(
@@ -141,7 +153,7 @@ class _SportsQuizScreenState extends State<SportsQuizScreen> {
             const SizedBox(height: 10),
             Text(currentQuestion['questionText'], style: const TextStyle(fontSize: 20)),
             const SizedBox(height: 30),
-            ...currentQuestion['options'].entries.map(
+            ...options.entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: ElevatedButton(

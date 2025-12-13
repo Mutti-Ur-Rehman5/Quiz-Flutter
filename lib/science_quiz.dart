@@ -36,18 +36,20 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
       setState(() => _timeLeft--);
       if (_timeLeft == 0) {
         _timer?.cancel();
-        _nextQuestion(false);
+        _nextQuestion(false); // auto wrong
       }
     });
   }
 
   void _answerQuestion(String selectedOptionKey) {
-    String correctKey = widget.questions['$currentIndex']['correctOptionKey'];
+    final currentQuestion = widget.questions['$currentIndex'] as Map<String, dynamic>;
+    final correctKey = currentQuestion['correctOptionKey'] as String;
     bool isCorrect = selectedOptionKey == correctKey;
+
     _nextQuestion(isCorrect);
   }
 
-  void _nextQuestion(bool isCorrect) {
+  void _nextQuestion(bool isCorrect) async {
     if (isCorrect) score++;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -71,17 +73,27 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
     });
   }
 
+  double _calculateLeaderboardScore() {
+    return (score / widget.questions.length) * 100;
+  }
+
   Future<void> _saveScoreToFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('quizScores')
-          .doc(widget.categoryName);
+    if (user == null) return;
 
-      await docRef.set({'score': score, 'total': widget.questions.length});
-    }
+    final leaderboardScore = _calculateLeaderboardScore();
+
+    await FirebaseFirestore.instance
+        .collection('leaderboard')
+        .doc(user.uid)
+        .set({
+      'uid': user.uid,
+      'category': widget.categoryName,
+      'score': score,
+      'total': widget.questions.length,
+      'leaderboardScore': leaderboardScore,
+      'timestamp': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   void _showResultDialog() {
@@ -114,6 +126,7 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
   @override
   Widget build(BuildContext context) {
     final currentQuestion = widget.questions['$currentIndex'];
+    final options = Map<String, String>.from(currentQuestion['options'] as Map);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F4FF),
@@ -168,7 +181,7 @@ class _ScienceQuizScreenState extends State<ScienceQuizScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            ...currentQuestion['options'].entries.map(
+            ...options.entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: ElevatedButton(

@@ -18,6 +18,7 @@ import 'profile.dart';
 import 'theme_provider.dart';
 import 'edit_questions_screen.dart';
 import 'quiz_web_resources_screen.dart';
+import "LeaderboardScreen.dart";
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,7 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadUserData();
   }
 
-  /// 🔥 Load user name from Firestore using Firebase Auth UID
   void _loadUserData() async {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -117,7 +117,6 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 
-  /// 🔐 Firebase Logout
   void _logout() async {
     await FirebaseAuth.instance.signOut();
 
@@ -133,8 +132,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-
-      // ⭐ BEAUTIFUL NEW NAVBAR ⭐
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120),
         child: Container(
@@ -210,6 +207,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const QuizWebResourcesScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 12),
+
+                    _glassNavbarButton(
+                      icon: Icons.emoji_events_rounded, // 🏆 Leaderboard
+                      glowColor: Colors.amberAccent,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LeaderboardScreen(),
                           ),
                         );
                       },

@@ -42,10 +42,10 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
   }
 
   void _answerQuestion(String selectedOptionKey) {
-    final currentQuestion = widget.questions['$currentIndex'] as Map<String, dynamic>;
+    final currentQuestion =
+        widget.questions['$currentIndex'] as Map<String, dynamic>;
     final correctKey = currentQuestion['correctOptionKey'] as String;
     bool isCorrect = selectedOptionKey == correctKey;
-
     _nextQuestion(isCorrect);
   }
 
@@ -67,23 +67,47 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
         setState(() => currentIndex++);
         _startTimer();
       } else {
-        await _saveScoreToFirestore();
+        await _saveResultToFirestore();
         _showResultDialog();
       }
     });
   }
 
-  Future<void> _saveScoreToFirestore() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('quizScores')
-          .doc(widget.categoryName);
+  /// 🔥 SAME LOGIC AS OTHER SCREENS (LEADERBOARD READY)
+  Future<void> _saveResultToFirestore() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-      await docRef.set({'score': score, 'total': widget.questions.length});
-    }
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    // 1️⃣ per-category score
+    await userRef
+        .collection('scores')
+        .doc(widget.categoryName)
+        .set({
+      'score': score,
+      'total': widget.questions.length,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // 2️⃣ update totals
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      final snap = await tx.get(userRef);
+
+      int oldTotalScore = snap.data()?['totalScore'] ?? 0;
+      int oldPlayed = snap.data()?['quizzesPlayed'] ?? 0;
+
+      tx.set(
+        userRef,
+        {
+          'totalScore': oldTotalScore + score,
+          'quizzesPlayed': oldPlayed + 1,
+          'lastPlayed': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    });
   }
 
   void _showResultDialog() {
@@ -118,8 +142,10 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentQuestion = widget.questions['$currentIndex'] as Map<String, dynamic>;
-    final options = Map<String, String>.from(currentQuestion['options'] as Map);
+    final currentQuestion =
+        widget.questions['$currentIndex'] as Map<String, dynamic>;
+    final options =
+        Map<String, String>.from(currentQuestion['options'] as Map);
 
     return Scaffold(
       body: Container(
@@ -146,7 +172,10 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
                 const SizedBox(height: 6),
                 Text(
                   "Time Left: $_timeLeft sec",
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -154,17 +183,22 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
                   children: [
                     Text(
                       "${widget.categoryName} Quiz",
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white24,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         "Q ${currentIndex + 1}/${widget.questions.length}",
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 16),
                       ),
                     ),
                   ],
@@ -176,35 +210,43 @@ class _GeographyQuizScreenState extends State<GeographyQuizScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.3), width: 1),
                   ),
                   child: Text(
                     currentQuestion['questionText'],
-                    style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                        fontSize: 22,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
                 const SizedBox(height: 30),
                 Expanded(
                   child: ListView(
-                    children: options.entries.map(
-                      (entry) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          child: GestureDetector(
-                            onTap: () => _answerQuestion(entry.key),
-                            child: Container(
-                              padding: const EdgeInsets.all(18),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                color: Colors.white.withOpacity(0.12),
-                                border: Border.all(color: Colors.white.withOpacity(0.3)),
-                              ),
-                              child: Text(entry.value, style: const TextStyle(fontSize: 18, color: Colors.white)),
+                    children: options.entries.map((entry) {
+                      return Padding(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 10),
+                        child: GestureDetector(
+                          onTap: () => _answerQuestion(entry.key),
+                          child: Container(
+                            padding: const EdgeInsets.all(18),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: Colors.white.withOpacity(0.12),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              entry.value,
+                              style: const TextStyle(
+                                  fontSize: 18, color: Colors.white),
                             ),
                           ),
-                        );
-                      },
-                    ).toList(),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
               ],

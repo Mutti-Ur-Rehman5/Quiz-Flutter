@@ -21,7 +21,7 @@ class _QuizScreenState extends State<QuizScreen> {
   int currentIndex = 0;
   int score = 0;
   Timer? _timer;
-  int _timeLeft = 10; // 10 seconds per question
+  int _timeLeft = 10;
 
   @override
   void initState() {
@@ -39,13 +39,14 @@ class _QuizScreenState extends State<QuizScreen> {
 
       if (_timeLeft == 0) {
         _timer?.cancel();
-        _nextQuestion(false); 
+        _nextQuestion(false);
       }
     });
   }
 
   void _answerQuestion(String selectedOptionKey) {
-    String correctKey = widget.questions['$currentIndex']['correctOptionKey'];
+    String correctKey =
+        widget.questions['$currentIndex']['correctOptionKey'];
     bool isCorrect = selectedOptionKey == correctKey;
     _nextQuestion(isCorrect);
   }
@@ -76,20 +77,29 @@ class _QuizScreenState extends State<QuizScreen> {
     });
   }
 
+  /// 🔥 UPDATED LOGIC (AUTO TOTAL SCORE + QUIZ COUNT)
   Future<void> _saveScoreToFirestore() async {
     User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('scores')
-          .doc(widget.categoryName)
-          .set({
-        'score': score,
-        'total': widget.questions.length,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    }
+    if (user == null) return;
+
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userRef);
+
+      int oldTotalScore = snapshot.data()?['totalScore'] ?? 0;
+      int oldQuizCount = snapshot.data()?['quizzesPlayed'] ?? 0;
+
+      transaction.set(
+        userRef,
+        {
+          'totalScore': oldTotalScore + score,
+          'quizzesPlayed': oldQuizCount + 1,
+        },
+        SetOptions(merge: true),
+      );
+    });
   }
 
   void _showResultDialog() {
@@ -141,7 +151,6 @@ class _QuizScreenState extends State<QuizScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Timer bar
             LinearProgressIndicator(
               value: _timeLeft / 10,
               color: Colors.red,
@@ -150,28 +159,24 @@ class _QuizScreenState extends State<QuizScreen> {
               borderRadius: BorderRadius.circular(10),
             ),
             const SizedBox(height: 10),
-            Text("Time left: $_timeLeft sec",
-                style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-
-            // Question number
             Text(
-              "Question ${currentIndex + 1}/${widget.questions.length}",
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              "Time left: $_timeLeft sec",
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
-            // Question card
+            Text(
+              "Question ${currentIndex + 1}/${widget.questions.length}",
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black12,
                     blurRadius: 8,
@@ -181,15 +186,11 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
               child: Text(
                 currentQuestion['questionText'],
-                style: const TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w500,
-                ),
+                style:
+                    const TextStyle(fontSize: 21, fontWeight: FontWeight.w500),
               ),
             ),
             const SizedBox(height: 30),
-
-            // Options
             ...currentQuestion['options'].entries.map(
               (entry) => Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -207,9 +208,7 @@ class _QuizScreenState extends State<QuizScreen> {
                   child: Text(
                     entry.value,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                    ),
+                        fontSize: 18, fontWeight: FontWeight.w500),
                   ),
                 ),
               ),

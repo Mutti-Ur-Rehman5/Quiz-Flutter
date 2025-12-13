@@ -36,22 +36,21 @@ class _FlutterQuizScreenState extends State<FlutterQuizScreen> {
       setState(() => _timeLeft--);
       if (_timeLeft == 0) {
         _timer?.cancel();
-        _nextQuestion(false); // Auto wrong
+        _nextQuestion(false);
       }
     });
   }
 
   void _answerQuestion(String selectedOptionKey) {
-    final correctKey = widget.questions['$currentIndex']['correctOptionKey'];
+    final correctKey =
+        widget.questions['$currentIndex']['correctOptionKey'];
     bool isCorrect = selectedOptionKey == correctKey;
-
     _nextQuestion(isCorrect);
   }
 
   void _nextQuestion(bool isCorrect) async {
     if (isCorrect) score++;
 
-    // Instant feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(isCorrect ? "Correct!" : "Wrong!"),
@@ -67,41 +66,70 @@ class _FlutterQuizScreenState extends State<FlutterQuizScreen> {
         setState(() => currentIndex++);
         _startTimer();
       } else {
-        // 🔥 Save score to Firestore instead of SharedPreferences
-        User? user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .collection('scores')
-              .doc(widget.categoryName)
-              .set({
-            'score': score,
-            'total': widget.questions.length,
-            'timestamp': FieldValue.serverTimestamp(),
-          });
-        }
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text("🎉 Quiz Finished!"),
-            content: Text("Your Score: $score / ${widget.questions.length}"),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-        );
+        await _saveResultToFirestore();
+        _showResultDialog();
       }
     });
+  }
+
+  /// 🔥 MAIN LOGIC (NO DB MANUAL WORK NEEDED)
+  Future<void> _saveResultToFirestore() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    // 1️⃣ save category score
+    await userRef
+        .collection('scores')
+        .doc(widget.categoryName)
+        .set({
+      'score': score,
+      'total': widget.questions.length,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // 2️⃣ update user totals (leaderboard ready)
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      final snap = await tx.get(userRef);
+
+      int oldTotalScore = snap.data()?['totalScore'] ?? 0;
+      int oldPlayed = snap.data()?['quizzesPlayed'] ?? 0;
+
+      tx.set(
+        userRef,
+        {
+          'totalScore': oldTotalScore + score,
+          'quizzesPlayed': oldPlayed + 1,
+          'lastPlayed': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    });
+  }
+
+  void _showResultDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
+        title: const Text("🎉 Quiz Finished!"),
+        content:
+            Text("Your Score: $score / ${widget.questions.length}"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -126,7 +154,6 @@ class _FlutterQuizScreenState extends State<FlutterQuizScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Timer Bar
             LinearProgressIndicator(
               value: _timeLeft / 10,
               color: Colors.red,
@@ -136,19 +163,18 @@ class _FlutterQuizScreenState extends State<FlutterQuizScreen> {
             const SizedBox(height: 6),
             Text(
               "Time Left: $_timeLeft sec",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
-            // Question progress
             Text(
               "Question ${currentIndex + 1} of ${widget.questions.length}",
               style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple),
             ),
             const SizedBox(height: 20),
-
-            // Question Box
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -165,12 +191,11 @@ class _FlutterQuizScreenState extends State<FlutterQuizScreen> {
               ),
               child: Text(
                 currentQuestion['questionText'],
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(height: 30),
-
-            // Options
             ...currentQuestion['options'].entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -181,15 +206,19 @@ class _FlutterQuizScreenState extends State<FlutterQuizScreen> {
                     foregroundColor: Colors.deepPurple,
                     minimumSize: const Size.fromHeight(55),
                     elevation: 3,
-                    shadowColor: Colors.deepPurple.withOpacity(0.3),
+                    shadowColor:
+                        Colors.deepPurple.withOpacity(0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
-                      side: const BorderSide(color: Colors.deepPurple, width: 1.2),
+                      side: const BorderSide(
+                          color: Colors.deepPurple, width: 1.2),
                     ),
                   ),
                   child: Text(
                     entry.value,
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500),
                   ),
                 ),
               ),

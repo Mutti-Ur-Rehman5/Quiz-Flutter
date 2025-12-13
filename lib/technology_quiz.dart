@@ -42,15 +42,16 @@ class _TechnologyQuizScreenState extends State<TechnologyQuizScreen> {
   }
 
   void _answerQuestion(String selectedOptionKey) {
-    String correctKey = widget.questions['$currentIndex']['correctOptionKey'];
+    final currentQuestion = widget.questions['$currentIndex'] as Map<String, dynamic>;
+    final correctKey = currentQuestion['correctOptionKey'] as String;
     bool isCorrect = selectedOptionKey == correctKey;
+
     _nextQuestion(isCorrect);
   }
 
   void _nextQuestion(bool isCorrect) async {
     if (isCorrect) score++;
 
-    // Feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(isCorrect ? "Correct!" : "Wrong!"),
@@ -75,13 +76,19 @@ class _TechnologyQuizScreenState extends State<TechnologyQuizScreen> {
   Future<void> _saveScoreToFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final docRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('quizScores')
-          .doc(widget.categoryName);
+      final leaderboardScore = (score / widget.questions.length) * 100;
 
-      await docRef.set({'score': score, 'total': widget.questions.length});
+      await FirebaseFirestore.instance
+          .collection('leaderboard')
+          .doc(user.uid)
+          .set({
+        'uid': user.uid,
+        'category': widget.categoryName,
+        'score': score,
+        'total': widget.questions.length,
+        'leaderboardScore': leaderboardScore,
+        'timestamp': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     }
   }
 
@@ -115,6 +122,7 @@ class _TechnologyQuizScreenState extends State<TechnologyQuizScreen> {
   @override
   Widget build(BuildContext context) {
     final currentQuestion = widget.questions['$currentIndex'];
+    final options = Map<String, String>.from(currentQuestion['options'] as Map);
 
     return Scaffold(
       body: Container(
@@ -138,8 +146,10 @@ class _TechnologyQuizScreenState extends State<TechnologyQuizScreen> {
                   minHeight: 8,
                 ),
                 const SizedBox(height: 6),
-                Text("Time left: $_timeLeft sec",
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(
+                  "Time Left: $_timeLeft sec",
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
                 const SizedBox(height: 10),
                 Text(
                   "${widget.categoryName} Quiz",
@@ -165,25 +175,29 @@ class _TechnologyQuizScreenState extends State<TechnologyQuizScreen> {
                   ),
                 ),
                 const SizedBox(height: 35),
-                ...currentQuestion['options'].entries.map(
-                  (entry) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: ElevatedButton(
-                      onPressed: () => _answerQuestion(entry.key),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.18),
-                        shadowColor: Colors.black26,
-                        elevation: 4,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                Expanded(
+                  child: ListView(
+                    children: options.entries.map(
+                      (entry) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: ElevatedButton(
+                          onPressed: () => _answerQuestion(entry.key),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white.withOpacity(0.18),
+                            shadowColor: Colors.black26,
+                            elevation: 4,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: Text(
+                            entry.value,
+                            style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w500),
+                          ),
                         ),
                       ),
-                      child: Text(
-                        entry.value,
-                        style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w500),
-                      ),
-                    ),
+                    ).toList(),
                   ),
                 ),
               ],

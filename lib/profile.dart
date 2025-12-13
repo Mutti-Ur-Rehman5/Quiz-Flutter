@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -12,10 +15,12 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
 
   bool isLoading = true;
   Map<String, dynamic> quizHistory = {}; // {QuizName: Score}
+  Uint8List? _profileImage;
+
+  final picker = ImagePicker();
 
   @override
   void initState() {
@@ -32,6 +37,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         nameController.text = data['name'] ?? '';
         emailController.text = user.email ?? '';
         quizHistory = data['quizScores'] ?? {};
+        if (data['profileImage'] != null) {
+          _profileImage = data['profileImage'].bytes;
+        }
       }
     }
     setState(() => isLoading = false);
@@ -39,33 +47,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveChanges() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      // Update name & quiz history in Firestore
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+    if (user != null) {
+      final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      Map<String, dynamic> updateData = {
         'name': nameController.text.trim(),
         'quizScores': quizHistory,
-      }, SetOptions(merge: true));
-
-      // Update email in Firebase Auth
-      if (emailController.text.trim() != user.email) {
-        await user.updateEmail(emailController.text.trim());
+      };
+      if (_profileImage != null) {
+        updateData['profileImage'] = _profileImage;
       }
-
-      // Update password if not empty
-      if (passwordController.text.isNotEmpty) {
-        await user.updatePassword(passwordController.text.trim());
-      }
-
+      await docRef.set(updateData, SetOptions(merge: true));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Profile Updated Successfully!")),
       );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
     }
+  }
+
+  Future<void> _pickProfileImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      Uint8List imageBytes;
+      if (kIsWeb) {
+        imageBytes = await pickedFile.readAsBytes();
+      } else {
+        imageBytes = await pickedFile.readAsBytes();
+      }
+      setState(() => _profileImage = imageBytes);
+    }
+  }
+
+  Widget _getProfileAvatar() {
+    if (_profileImage != null) {
+      return CircleAvatar(radius: 50, backgroundImage: MemoryImage(_profileImage!));
+    }
+    return const CircleAvatar(
+      radius: 50,
+      backgroundColor: Colors.deepPurple,
+      child: Icon(Icons.person, color: Colors.white, size: 50),
+    );
   }
 
   @override
@@ -85,7 +104,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.all(18.0),
         child: Column(
           children: [
-            // Name
+            GestureDetector(
+              onTap: _pickProfileImage,
+              child: _getProfileAvatar(),
+            ),
+            const SizedBox(height: 10),
+            const Text("Tap image to change", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 30),
             TextField(
               controller: nameController,
               decoration: InputDecoration(
@@ -95,31 +120,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Email
             TextField(
               controller: emailController,
+              enabled: false, // Email from Firebase Auth, cannot edit
               decoration: InputDecoration(
                 labelText: "Email",
                 prefixIcon: const Icon(Icons.email),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-            const SizedBox(height: 20),
-
-            // Password
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: "New Password",
-                prefixIcon: const Icon(Icons.lock),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
             const SizedBox(height: 30),
-
-            // Save Button
             SizedBox(
               width: double.infinity,
               height: 55,
@@ -132,10 +142,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: const Text("Save Changes", style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
             ),
-
             const SizedBox(height: 40),
-
-            // Quiz History
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -147,10 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "📊 Quiz History",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                  ),
+                  const Text("📊 Quiz History", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
                   const SizedBox(height: 15),
                   ...quizHistory.entries.map((entry) {
                     return Padding(
