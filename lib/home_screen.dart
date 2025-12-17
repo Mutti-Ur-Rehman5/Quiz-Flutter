@@ -18,7 +18,7 @@ import 'profile.dart';
 import 'theme_provider.dart';
 import 'edit_questions_screen.dart';
 import 'quiz_web_resources_screen.dart';
-import "LeaderboardScreen.dart";
+import 'LeaderboardScreen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +30,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String userName = "User";
   File? profileImage;
+  bool isAdmin = false; // <-- admin flag
 
   final List<Map<String, dynamic>> categories = [
     {"name": "Flutter", "icon": Icons.flutter_dash, "color": Colors.purple},
@@ -66,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (userDoc.exists) {
       setState(() {
         userName = userDoc['name'] ?? 'User';
+        isAdmin = userDoc['isAdmin'] ?? false; // <-- fetch admin status
       });
     }
   }
@@ -179,7 +181,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-
                 Row(
                   children: [
                     Text(
@@ -191,14 +192,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
-
                     _glassNavbarButton(
                       icon: Icons.wb_sunny_rounded,
                       glowColor: Colors.yellowAccent,
                       onTap: () => themeProvider.toggleTheme(),
                     ),
                     const SizedBox(width: 12),
-
                     _glassNavbarButton(
                       icon: Icons.language_rounded,
                       glowColor: Colors.cyanAccent,
@@ -212,9 +211,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
                     const SizedBox(width: 12),
-
                     _glassNavbarButton(
-                      icon: Icons.emoji_events_rounded, // 🏆 Leaderboard
+                      icon: Icons.emoji_events_rounded,
                       glowColor: Colors.amberAccent,
                       onTap: () {
                         Navigator.push(
@@ -226,7 +224,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
                     const SizedBox(width: 12),
-
                     GestureDetector(
                       onTap: () async {
                         await Navigator.push(
@@ -245,7 +242,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-
                     _glassNavbarButton(
                       icon: Icons.logout_rounded,
                       glowColor: Colors.redAccent,
@@ -258,7 +254,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-
       body: Padding(
         padding: const EdgeInsets.only(top: 130, left: 10, right: 10),
         child: GridView.builder(
@@ -296,31 +291,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () => navigateToQuiz(category["name"]),
                 child: Stack(
                   children: [
-                    Positioned(
-                      top: 6,
-                      right: 6,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.35),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.edit,
-                              size: 20, color: Colors.white),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => EditQuestionsScreen(
-                                  categoryName: category["name"],
+                    if (isAdmin) // <-- only admins see edit button
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.35),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.edit,
+                                size: 20, color: Colors.white),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => EditQuestionsScreen(
+                                    categoryName: category["name"],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ),
-
                     Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
