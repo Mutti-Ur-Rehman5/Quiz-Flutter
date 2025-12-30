@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,7 +28,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String userName = "User";
   File? profileImage;
-  bool isAdmin = false; // <-- admin flag
+  bool isAdmin = false;
 
   final List<Map<String, dynamic>> categories = [
     {"name": "Flutter", "icon": Icons.flutter_dash, "color": Colors.purple},
@@ -67,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (userDoc.exists) {
       setState(() {
         userName = userDoc['name'] ?? 'User';
-        isAdmin = userDoc['isAdmin'] ?? false; // <-- fetch admin status
+        isAdmin = userDoc['isAdmin'] ?? false;
       });
     }
   }
@@ -116,12 +114,11 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
     }
 
-    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
   void _logout() async {
     await FirebaseAuth.instance.signOut();
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -134,49 +131,111 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+
+      /// ================= DRAWER =================
+      endDrawer: Drawer(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF6A4FEF), Color(0xFF8A6BFF)],
+                ),
+              ),
+              accountName: Text(userName),
+              accountEmail: Text(
+                FirebaseAuth.instance.currentUser?.email ?? "",
+              ),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, size: 40, color: Colors.deepPurple),
+              ),
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.wb_sunny_rounded),
+              title: const Text("Toggle Theme"),
+              onTap: () =>
+                  Provider.of<ThemeProvider>(context, listen: false)
+                      .toggleTheme(),
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.language_rounded),
+              title: const Text("Web Resources"),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const QuizWebResourcesScreen()),
+                );
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.emoji_events_rounded),
+              title: const Text("Leaderboard"),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const LeaderboardScreen()),
+                );
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text("Profile"),
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+                _loadUserData();
+              },
+            ),
+
+            const Spacer(),
+
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("Logout"),
+              onTap: _logout,
+            ),
+          ],
+        ),
+      ),
+
+      /// ================= APP BAR =================
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(120),
+        preferredSize: const Size.fromHeight(110),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [
-                Color(0xFF6A4FEF),
-                Color(0xFF8A6BFF),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              colors: [Color(0xFF6A4FEF), Color(0xFF8A6BFF)],
             ),
             borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(35),
-              bottomRight: Radius.circular(35),
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.deepPurple.withOpacity(0.35),
-                blurRadius: 25,
-                spreadRadius: 1,
-                offset: Offset(0, 10),
-              )
-            ],
           ),
           child: SafeArea(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
-                  children: [
+                  children: const [
                     Icon(Icons.bolt,
-                        size: 34,
-                        color: Colors.yellowAccent.withOpacity(0.9)),
-                    const SizedBox(width: 10),
-                    const Text(
+                        size: 32, color: Colors.yellowAccent),
+                    SizedBox(width: 8),
+                    Text(
                       "QuizMaker",
                       style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
-                        letterSpacing: 1.2,
                       ),
                     ),
                   ],
@@ -186,74 +245,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     Text(
                       userName,
                       style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 8),
+                    Builder(
+                      builder: (context) => IconButton(
+                        icon: const Icon(Icons.menu,
+                            color: Colors.white, size: 30),
+                        onPressed: () =>
+                            Scaffold.of(context).openEndDrawer(),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    _glassNavbarButton(
-                      icon: Icons.wb_sunny_rounded,
-                      glowColor: Colors.yellowAccent,
-                      onTap: () => themeProvider.toggleTheme(),
-                    ),
-                    const SizedBox(width: 12),
-                    _glassNavbarButton(
-                      icon: Icons.language_rounded,
-                      glowColor: Colors.cyanAccent,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const QuizWebResourcesScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    _glassNavbarButton(
-                      icon: Icons.emoji_events_rounded,
-                      glowColor: Colors.amberAccent,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const LeaderboardScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ProfileScreen(),
-                          ),
-                        );
-                        _loadUserData();
-                      },
-                      child: CircleAvatar(
-                        radius: 26,
-                        backgroundColor: Colors.white.withOpacity(0.25),
-                        child: const Icon(Icons.person,
-                            color: Colors.white, size: 26),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    _glassNavbarButton(
-                      icon: Icons.logout_rounded,
-                      glowColor: Colors.redAccent,
-                      onTap: _logout,
                     ),
                   ],
-                ),
+                )
               ],
             ),
           ),
         ),
       ),
+
+      /// ================= BODY =================
       body: Padding(
         padding: const EdgeInsets.only(top: 130, left: 10, right: 10),
         child: GridView.builder(
@@ -262,7 +275,6 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisCount: 3,
             crossAxisSpacing: 15,
             mainAxisSpacing: 15,
-            childAspectRatio: 0.95,
           ),
           itemBuilder: (context, index) {
             final category = categories[index];
@@ -273,47 +285,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 gradient: LinearGradient(
                   colors: [
                     category["color"].withOpacity(0.9),
-                    category["color"].withOpacity(0.65)
+                    category["color"].withOpacity(0.65),
                   ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: category["color"].withOpacity(0.45),
-                    blurRadius: 14,
-                    offset: const Offset(3, 6),
-                  )
-                ],
               ),
               child: InkWell(
                 borderRadius: BorderRadius.circular(22),
                 onTap: () => navigateToQuiz(category["name"]),
                 child: Stack(
                   children: [
-                    if (isAdmin) // <-- only admins see edit button
+                    if (isAdmin)
                       Positioned(
                         top: 6,
                         right: 6,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.35),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.edit,
-                                size: 20, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => EditQuestionsScreen(
-                                    categoryName: category["name"],
-                                  ),
+                        child: IconButton(
+                          icon: const Icon(Icons.edit,
+                              color: Colors.white),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => EditQuestionsScreen(
+                                  categoryName: category["name"],
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     Center(
@@ -321,21 +318,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(category["icon"],
-                              size: 65, color: Colors.white),
-                          const SizedBox(height: 14),
+                              size: 60, color: Colors.white),
+                          const SizedBox(height: 10),
                           Text(
                             category["name"],
                             style: const TextStyle(
-                              fontSize: 18,
                               color: Colors.white,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              shadows: [
-                                Shadow(
-                                  blurRadius: 5,
-                                  color: Colors.black54,
-                                  offset: Offset(1, 2),
-                                )
-                              ],
                             ),
                           )
                         ],
@@ -347,32 +337,6 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
-      ),
-    );
-  }
-
-  Widget _glassNavbarButton({
-    required IconData icon,
-    required VoidCallback onTap,
-    required Color glowColor,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.18),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white30),
-          boxShadow: [
-            BoxShadow(
-              color: glowColor.withOpacity(0.45),
-              blurRadius: 12,
-              spreadRadius: 1,
-            ),
-          ],
-        ),
-        child: Icon(icon, size: 26, color: Colors.white),
       ),
     );
   }
